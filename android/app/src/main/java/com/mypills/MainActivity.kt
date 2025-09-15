@@ -669,7 +669,7 @@ fun NotificationDialog(
 @Composable
 fun PillReminderTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = lightColorScheme(
+        colorScheme = ColorScheme.light(
             primary = Color(0xFF2563EB),
             secondary = Color(0xFF10B981),
             surface = Color(0xFFF9FAFB)
