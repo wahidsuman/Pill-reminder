@@ -76,6 +76,9 @@ public class MainActivity extends Activity {
     
     // Permissions
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 1001;
+    
+    // Broadcast receiver for notification actions
+    private BroadcastReceiver notificationActionReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,6 +95,9 @@ public class MainActivity extends Activity {
         
         // Initialize alarm manager
         alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        
+        // Setup broadcast receiver for notification actions
+        setupNotificationActionReceiver();
         
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -343,6 +349,34 @@ public class MainActivity extends Activity {
         });
         
         contentLayout.addView(testBackgroundButton);
+        
+        // Add "Test Notification Actions" button
+        Button testActionsButton = new Button(this);
+        testActionsButton.setText("🔔 TEST NOTIFICATION ACTIONS");
+        testActionsButton.setTextSize(16);
+        testActionsButton.setTextColor(Color.WHITE);
+        testActionsButton.setBackgroundColor(Color.parseColor("#7C3AED")); // Modern purple
+        testActionsButton.setTypeface(null, android.graphics.Typeface.BOLD);
+        
+        // Set button size and styling
+        LinearLayout.LayoutParams testActionsButtonParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        testActionsButtonParams.height = 70;
+        testActionsButtonParams.setMargins(0, 12, 0, 0);
+        testActionsButton.setLayoutParams(testActionsButtonParams);
+        testActionsButton.setElevation(4);
+        
+        // Set button click listener
+        testActionsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                testNotificationActions();
+            }
+        });
+        
+        contentLayout.addView(testActionsButton);
         layout.addView(contentLayout);
         
         setContentView(layout);
@@ -837,6 +871,41 @@ public class MainActivity extends Activity {
         android.widget.Toast.makeText(this, "🌙 Background test scheduled! Close the app and wait 10 seconds.", android.widget.Toast.LENGTH_LONG).show();
     }
     
+    private void testNotificationActions() {
+        // Schedule a test notification with actions for 5 seconds from now
+        Calendar testTime = Calendar.getInstance();
+        testTime.add(Calendar.SECOND, 5);
+        
+        Intent intent = new Intent(this, PillReminderReceiver.class);
+        intent.setAction(ACTION_PILL_REMINDER);
+        intent.putExtra(EXTRA_PILL_NAME, "Test Action Pill");
+        intent.putExtra(EXTRA_PILL_DOSAGE, "1 tablet");
+        intent.putExtra(EXTRA_PILL_INDEX, 888); // Use unique index for test
+        
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+            this, 
+            888,
+            intent, 
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                testTime.getTimeInMillis(),
+                pendingIntent
+            );
+        } else {
+            alarmManager.setExact(
+                AlarmManager.RTC_WAKEUP,
+                testTime.getTimeInMillis(),
+                pendingIntent
+            );
+        }
+        
+        android.widget.Toast.makeText(this, "🔔 Test notification with actions scheduled! Wait 5 seconds and try the Take/Snooze buttons.", android.widget.Toast.LENGTH_LONG).show();
+    }
+    
     // Pill notification scheduling methods
     private void schedulePillNotification(int pillIndex, String pillName, String pillDosage, String timeString) {
         try {
@@ -955,6 +1024,46 @@ public class MainActivity extends Activity {
         alarmManager.cancel(pendingIntent);
     }
     
+    private void setupNotificationActionReceiver() {
+        notificationActionReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if ("com.mypills.PILL_TAKEN".equals(intent.getAction())) {
+                    int pillIndex = intent.getIntExtra("pill_index", -1);
+                    if (pillIndex >= 0 && pillIndex < pillsTaken.size()) {
+                        // Update the pill status
+                        pillsTaken.set(pillIndex, true);
+                        
+                        // Update the UI
+                        updatePillCardAppearance(pillIndex);
+                        
+                        // Update status counts
+                        updateStatusCounts();
+                        
+                        // Save to storage
+                        savePillsToStorage();
+                    }
+                }
+            }
+        };
+        
+        // Register the receiver
+        IntentFilter filter = new IntentFilter("com.mypills.PILL_TAKEN");
+        registerReceiver(notificationActionReceiver, filter);
+    }
+    
+    private void updatePillCardAppearance(int index) {
+        if (index < pillCards.size() && index < takeButtons.size()) {
+            // Update card background
+            pillCards.get(index).setBackgroundColor(Color.parseColor("#ECFDF5")); // Light green
+            
+            // Update button appearance
+            takeButtons.get(index).setText("✓ TAKEN");
+            takeButtons.get(index).setBackgroundColor(Color.parseColor("#10B981")); // Green
+            takeButtons.get(index).setEnabled(false);
+        }
+    }
+    
     @Override
     protected void onPause() {
         super.onPause();
@@ -969,6 +1078,10 @@ public class MainActivity extends Activity {
         savePillsToStorage();
         if (timeUpdater != null) {
             handler.removeCallbacks(timeUpdater);
+        }
+        // Unregister broadcast receiver
+        if (notificationActionReceiver != null) {
+            unregisterReceiver(notificationActionReceiver);
         }
     }
 }

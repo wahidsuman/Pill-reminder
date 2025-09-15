@@ -17,6 +17,10 @@ public class PillReminderReceiver extends BroadcastReceiver {
     private static final String CHANNEL_NAME = "Pill Reminders";
     private static final String CHANNEL_DESCRIPTION = "Notifications for pill reminders";
     
+    // Action constants
+    private static final String ACTION_TAKE_PILL = "com.mypills.TAKE_PILL";
+    private static final String ACTION_SNOOZE_PILL = "com.mypills.SNOOZE_PILL";
+    
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent.getAction().equals("com.mypills.PILL_REMINDER")) {
@@ -44,7 +48,29 @@ public class PillReminderReceiver extends BroadcastReceiver {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
             
-            // Create notification
+            // Create "Take" action intent
+            Intent takeIntent = new Intent(context, NotificationActionReceiver.class);
+            takeIntent.setAction(ACTION_TAKE_PILL);
+            takeIntent.putExtra("pill_name", pillName);
+            takeIntent.putExtra("pill_dosage", pillDosage);
+            takeIntent.putExtra("pill_index", pillIndex);
+            PendingIntent takePendingIntent = PendingIntent.getBroadcast(
+                context, pillIndex * 2, takeIntent, 
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            
+            // Create "Snooze" action intent
+            Intent snoozeIntent = new Intent(context, NotificationActionReceiver.class);
+            snoozeIntent.setAction(ACTION_SNOOZE_PILL);
+            snoozeIntent.putExtra("pill_name", pillName);
+            snoozeIntent.putExtra("pill_dosage", pillDosage);
+            snoozeIntent.putExtra("pill_index", pillIndex);
+            PendingIntent snoozePendingIntent = PendingIntent.getBroadcast(
+                context, pillIndex * 2 + 1, snoozeIntent, 
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            
+            // Create notification with action buttons
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle("💊 Time for " + pillName)
@@ -55,10 +81,12 @@ public class PillReminderReceiver extends BroadcastReceiver {
                 .setColor(Color.parseColor("#6366F1"))
                 .setStyle(new NotificationCompat.BigTextStyle()
                     .bigText("It's time to take your " + pillName + " (" + pillDosage + "). " +
-                            "Don't forget to mark it as taken in the app!"))
+                            "Tap 'Take' to mark as taken or 'Snooze' to remind later."))
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setVibrate(new long[]{0, 500, 200, 500})
-                .setLights(Color.parseColor("#6366F1"), 1000, 1000);
+                .setLights(Color.parseColor("#6366F1"), 1000, 1000)
+                .addAction(android.R.drawable.ic_menu_send, "✓ Take", takePendingIntent)
+                .addAction(android.R.drawable.ic_menu_recent_history, "⏰ Snooze 10m", snoozePendingIntent);
             
                 // Show notification
                 NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
