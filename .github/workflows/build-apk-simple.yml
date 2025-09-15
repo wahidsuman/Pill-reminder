@@ -50,11 +50,22 @@ jobs:
       env:
         NODE_ENV: production
         
+    - name: List generated files
+      run: |
+        echo "=== Listing all APK files ==="
+        find android/app/build -name "*.apk" -type f
+        echo "=== Listing build outputs directory ==="
+        ls -la android/app/build/outputs/ || echo "outputs directory not found"
+        echo "=== Listing APK directory ==="
+        ls -la android/app/build/outputs/apk/ || echo "apk directory not found"
+        echo "=== Listing release directory ==="
+        ls -la android/app/build/outputs/apk/release/ || echo "release directory not found"
+        
     - name: Upload APK as Artifact
       uses: actions/upload-artifact@v4
       with:
         name: my-pills-apk-${{ github.run_number }}
-        path: android/app/build/outputs/apk/release/app-release.apk
+        path: android/app/build/outputs/apk/release/*.apk
         retention-days: 30
         
     - name: Comment PR with download link
