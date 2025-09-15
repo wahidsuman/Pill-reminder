@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.collectAsState
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -41,11 +41,11 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PillReminderApp(viewModel: PillViewModel) {
-    val pills by viewModel.pills.collectAsStateWithLifecycle()
-    val currentTime by viewModel.currentTime.collectAsStateWithLifecycle()
-    val showAddDialog by viewModel.showAddPillDialog.collectAsStateWithLifecycle()
-    val showNotificationDialog by viewModel.showNotificationDialog.collectAsStateWithLifecycle()
-    val activeNotificationPill by viewModel.activeNotificationPill.collectAsStateWithLifecycle()
+    val pills by viewModel.pills.collectAsState()
+    val currentTime by viewModel.currentTime.collectAsState()
+    val showAddDialog by viewModel.showAddPillDialog.collectAsState()
+    val showNotificationDialog by viewModel.showNotificationDialog.collectAsState()
+    val activeNotificationPill by viewModel.activeNotificationPill.collectAsState()
     
     val currentDate = remember {
         val dateFormat = SimpleDateFormat("EEEE, MMM d", Locale.getDefault())

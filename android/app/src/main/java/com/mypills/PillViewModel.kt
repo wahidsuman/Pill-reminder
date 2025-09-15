@@ -9,6 +9,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -24,17 +27,17 @@ class PillViewModel(application: Application) : AndroidViewModel(application) {
     private val _pills = mutableStateListOf<Pill>()
     val pills: List<Pill> = _pills
     
-    private val _currentTime = mutableStateOf("")
-    val currentTime: String = _currentTime.value
+    private val _currentTime = MutableStateFlow("")
+    val currentTime: StateFlow<String> = _currentTime.asStateFlow()
     
-    private val _showAddPillDialog = mutableStateOf(false)
-    val showAddPillDialog: Boolean = _showAddPillDialog.value
+    private val _showAddPillDialog = MutableStateFlow(false)
+    val showAddPillDialog: StateFlow<Boolean> = _showAddPillDialog.asStateFlow()
     
-    private val _showNotificationDialog = mutableStateOf(false)
-    val showNotificationDialog: Boolean = _showNotificationDialog.value
+    private val _showNotificationDialog = MutableStateFlow(false)
+    val showNotificationDialog: StateFlow<Boolean> = _showNotificationDialog.asStateFlow()
     
-    private val _activeNotificationPill = mutableStateOf<Pill?>(null)
-    val activeNotificationPill: Pill? = _activeNotificationPill.value
+    private val _activeNotificationPill = MutableStateFlow<Pill?>(null)
+    val activeNotificationPill: StateFlow<Pill?> = _activeNotificationPill.asStateFlow()
     
     val takenCount: Int
         get() = _pills.count { it.taken }
