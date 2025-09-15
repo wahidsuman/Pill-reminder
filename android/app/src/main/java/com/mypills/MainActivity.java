@@ -54,7 +54,12 @@ public class MainActivity extends Activity {
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setGravity(Gravity.CENTER);
-        content.setPadding(0, 50, 0, 50);
+        content.setPadding(20, 30, 20, 30);
+        
+        // Add sample pills
+        addPillCard(content, "Vitamin D", "1000 IU", "8:00 AM");
+        addPillCard(content, "Blood Pressure", "5mg", "2:00 PM");
+        addPillCard(content, "Multivitamin", "1 tablet", "6:00 PM");
         
         layout.addView(content);
         
@@ -80,6 +85,58 @@ public class MainActivity extends Activity {
             }
         };
         handler.post(timeUpdater);
+    }
+    
+    private void addPillCard(LinearLayout parent, String name, String dosage, String time) {
+        // Create card container
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundColor(Color.WHITE);
+        card.setPadding(30, 25, 30, 25);
+        card.setGravity(Gravity.CENTER);
+        
+        // Add shadow effect (simple border)
+        card.setElevation(8);
+        
+        // Create pill name
+        TextView pillName = new TextView(this);
+        pillName.setText(name);
+        pillName.setTextSize(28);
+        pillName.setTextColor(Color.parseColor("#333333"));
+        pillName.setGravity(Gravity.CENTER);
+        pillName.setTypeface(null, android.graphics.Typeface.BOLD);
+        pillName.setPadding(0, 0, 0, 10);
+        
+        // Create dosage
+        TextView pillDosage = new TextView(this);
+        pillDosage.setText("Dosage: " + dosage);
+        pillDosage.setTextSize(24);
+        pillDosage.setTextColor(Color.parseColor("#666666"));
+        pillDosage.setGravity(Gravity.CENTER);
+        pillDosage.setPadding(0, 0, 0, 8);
+        
+        // Create time
+        TextView pillTime = new TextView(this);
+        pillTime.setText("Time: " + time);
+        pillTime.setTextSize(24);
+        pillTime.setTextColor(Color.parseColor("#666666"));
+        pillTime.setGravity(Gravity.CENTER);
+        
+        // Add views to card
+        card.addView(pillName);
+        card.addView(pillDosage);
+        card.addView(pillTime);
+        
+        // Create layout params for spacing
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        cardParams.setMargins(0, 0, 0, 20);
+        card.setLayoutParams(cardParams);
+        
+        // Add card to parent
+        parent.addView(card);
     }
     
     @Override
