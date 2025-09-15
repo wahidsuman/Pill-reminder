@@ -47,6 +47,8 @@ jobs:
       run: |
         cd android
         ./gradlew assembleRelease
+      env:
+        NODE_ENV: production
         
     - name: Upload APK as Artifact
       uses: actions/upload-artifact@v4

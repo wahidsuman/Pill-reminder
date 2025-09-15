@@ -1,0 +1,173 @@
+name: Build APK (Basic)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Install dependencies
+      run: npm install
+      
+    - name: Create basic Android project structure
+      run: |
+        # Create a simple Android project without React Native dependencies
+        mkdir -p android/app/src/main/java/com/mypills
+        mkdir -p android/app/src/main/res/layout
+        mkdir -p android/app/src/main/res/values
+        
+    - name: Create simple Android manifest
+      run: |
+        cat > android/app/src/main/AndroidManifest.xml << 'EOF'
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <application
+                android:allowBackup="true"
+                android:icon="@mipmap/ic_launcher"
+                android:label="@string/app_name"
+                android:theme="@style/AppTheme">
+                <activity
+                    android:name=".MainActivity"
+                    android:exported="true"
+                    android:label="@string/app_name">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+        
+    - name: Create simple MainActivity
+      run: |
+        cat > android/app/src/main/java/com/mypills/MainActivity.java << 'EOF'
+        package com.mypills;
+        
+        import android.app.Activity;
+        import android.os.Bundle;
+        import android.widget.TextView;
+        import android.widget.LinearLayout;
+        import android.graphics.Color;
+        import android.view.Gravity;
+        
+        public class MainActivity extends Activity {
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                
+                LinearLayout layout = new LinearLayout(this);
+                layout.setOrientation(LinearLayout.VERTICAL);
+                layout.setBackgroundColor(Color.WHITE);
+                layout.setGravity(Gravity.CENTER);
+                
+                TextView title = new TextView(this);
+                title.setText("My Pills");
+                title.setTextSize(36);
+                title.setTextColor(Color.parseColor("#2196F3"));
+                title.setGravity(Gravity.CENTER);
+                title.setPadding(0, 50, 0, 20);
+                
+                TextView time = new TextView(this);
+                time.setText("Time: " + java.text.DateFormat.getTimeInstance().format(new java.util.Date()));
+                time.setTextSize(28);
+                time.setTextColor(Color.parseColor("#2196F3"));
+                time.setGravity(Gravity.CENTER);
+                time.setPadding(0, 0, 0, 50);
+                
+                layout.addView(title);
+                layout.addView(time);
+                
+                setContentView(layout);
+            }
+        }
+        EOF
+        
+    - name: Create simple build.gradle
+      run: |
+        cat > android/app/build.gradle << 'EOF'
+        apply plugin: 'com.android.application'
+        
+        android {
+            compileSdkVersion 33
+            defaultConfig {
+                applicationId "com.mypills"
+                minSdkVersion 21
+                targetSdkVersion 33
+                versionCode 1
+                versionName "1.0"
+            }
+            buildTypes {
+                release {
+                    minifyEnabled false
+                    proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+                }
+            }
+        }
+        
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+        }
+        EOF
+        
+    - name: Create simple project build.gradle
+      run: |
+        cat > android/build.gradle << 'EOF'
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:7.4.2'
+            }
+        }
+        
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        EOF
+        
+    - name: Create simple settings.gradle
+      run: |
+        cat > android/settings.gradle << 'EOF'
+        include ':app'
+        EOF
+        
+    - name: Make gradlew executable
+      run: chmod +x ./android/gradlew
+      
+    - name: Build APK
+      run: |
+        cd android
+        ./gradlew assembleRelease
+        
+    - name: Upload APK as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: my-pills-basic-apk-${{ github.run_number }}
+        path: android/app/build/outputs/apk/release/app-release.apk
+        retention-days: 30
