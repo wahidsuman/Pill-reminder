@@ -2,7 +2,13 @@ package com.mypills;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.TextView;
 import android.widget.LinearLayout;
@@ -13,6 +19,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.os.Handler;
+import androidx.core.app.NotificationCompat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -41,6 +48,12 @@ public class MainActivity extends Activity {
     private SharedPreferences sharedPreferences;
     private static final String PREFS_NAME = "MyPillsPrefs";
     private static final String PILLS_KEY = "saved_pills";
+    
+    // Notifications
+    private static final String CHANNEL_ID = "pill_reminders";
+    private static final String CHANNEL_NAME = "Pill Reminders";
+    private static final String CHANNEL_DESCRIPTION = "Notifications for pill reminders";
+    private static final int NOTIFICATION_ID = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +61,9 @@ public class MainActivity extends Activity {
         
         // Initialize storage
         sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        
+        // Create notification channel
+        createNotificationChannel();
         
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -124,6 +140,34 @@ public class MainActivity extends Activity {
         });
         
         contentLayout.addView(addPillButton);
+        
+        // Add "Test Notification" button
+        Button testNotificationButton = new Button(this);
+        testNotificationButton.setText("🔔 TEST NOTIFICATION");
+        testNotificationButton.setTextSize(18);
+        testNotificationButton.setTextColor(Color.WHITE);
+        testNotificationButton.setBackgroundColor(Color.parseColor("#8B5CF6")); // Modern purple
+        testNotificationButton.setTypeface(null, android.graphics.Typeface.BOLD);
+        
+        // Set button size and styling
+        LinearLayout.LayoutParams testButtonParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        testButtonParams.height = 80;
+        testButtonParams.setMargins(0, 16, 0, 0);
+        testNotificationButton.setLayoutParams(testButtonParams);
+        testNotificationButton.setElevation(6);
+        
+        // Set button click listener
+        testNotificationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showTestNotification();
+            }
+        });
+        
+        contentLayout.addView(testNotificationButton);
         layout.addView(contentLayout);
         
         setContentView(layout);
@@ -441,6 +485,55 @@ public class MainActivity extends Activity {
             android.widget.Toast.makeText(this, "Storage error: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
             return false;
         }
+    }
+    
+    // Notification methods
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT
+            );
+            channel.setDescription(CHANNEL_DESCRIPTION);
+            channel.enableLights(true);
+            channel.setLightColor(Color.parseColor("#6366F1"));
+            channel.enableVibration(true);
+            
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+    
+    private void showTestNotification() {
+        // Create intent for when notification is tapped
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+            this, 0, intent, 
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        
+        // Create notification
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info) // Use system icon
+            .setContentTitle("💊 My Pills - Test Notification")
+            .setContentText("This is a test notification from your pill reminder app!")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setColor(Color.parseColor("#6366F1"))
+            .setStyle(new NotificationCompat.BigTextStyle()
+                .bigText("This is a test notification from your pill reminder app! " +
+                        "If you can see this, notifications are working correctly. " +
+                        "Future pill reminders will appear like this."));
+        
+        // Show notification
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(NOTIFICATION_ID, builder.build());
+        
+        // Show toast confirmation
+        android.widget.Toast.makeText(this, "🔔 Test notification sent!", android.widget.Toast.LENGTH_SHORT).show();
     }
     
     @Override
