@@ -1,0 +1,92 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Make gradlew executable
+      run: chmod +x ./android/gradlew
+      
+    - name: Build APK
+      run: |
+        cd android
+        ./gradlew assembleRelease
+      env:
+        ANDROID_HOME: ${{ secrets.ANDROID_HOME }}
+        ANDROID_SDK_ROOT: ${{ secrets.ANDROID_SDK_ROOT }}
+        
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: my-pills-apk
+        path: android/app/build/outputs/apk/release/app-release.apk
+        
+    - name: Create Release
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.run_number }}
+        name: My Pills v${{ github.run_number }}
+        draft: false
+        prerelease: false
+        files: android/app/build/outputs/apk/release/app-release.apk
+        body: |
+          ## My Pills APK Release
+          
+          **Version:** v${{ github.run_number }}
+          **Build Date:** ${{ github.event.head_commit.timestamp }}
+          
+          ### Features:
+          - Large, bold text suitable for elderly users
+          - Real-time clock display
+          - Clean white background with blue header
+          - Simple, accessible design
+          
+          ### Installation:
+          1. Download the APK file below
+          2. Enable "Install from unknown sources" on your Android device
+          3. Install the APK
+          
+          ### Requirements:
+          - Android 5.0 (API level 21) or higher
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

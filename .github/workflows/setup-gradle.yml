@@ -1,0 +1,31 @@
+name: Setup Gradle Wrapper
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-gradle:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Download Gradle Wrapper
+      run: |
+        cd android
+        gradle wrapper --gradle-version 7.5.1
+        
+    - name: Commit Gradle Wrapper
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add android/gradle/wrapper/gradle-wrapper.jar
+        git commit -m "Add Gradle Wrapper JAR" || exit 0
+        git push
