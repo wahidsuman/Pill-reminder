@@ -1,12 +1,15 @@
 package com.mypills;
 
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
@@ -21,6 +24,7 @@ import android.view.View;
 import android.os.Handler;
 import androidx.core.app.NotificationCompat;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.ArrayList;
@@ -54,6 +58,14 @@ public class MainActivity extends Activity {
     private static final String CHANNEL_NAME = "Pill Reminders";
     private static final String CHANNEL_DESCRIPTION = "Notifications for pill reminders";
     private static final int NOTIFICATION_ID = 1;
+    private static final int TEST_NOTIFICATION_ID = 999;
+    
+    // Alarm Manager
+    private AlarmManager alarmManager;
+    private static final String ACTION_PILL_REMINDER = "com.mypills.PILL_REMINDER";
+    private static final String EXTRA_PILL_NAME = "pill_name";
+    private static final String EXTRA_PILL_DOSAGE = "pill_dosage";
+    private static final String EXTRA_PILL_INDEX = "pill_index";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +76,9 @@ public class MainActivity extends Activity {
         
         // Create notification channel
         createNotificationChannel();
+        
+        // Initialize alarm manager
+        alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -112,6 +127,9 @@ public class MainActivity extends Activity {
             addPill("Blood Pressure", "5mg", "2:00 PM");
             addPill("Multivitamin", "1 tablet", "6:00 PM");
         }
+        
+        // Schedule notifications for all pills
+        scheduleAllPillNotifications();
         
         // Add "Add Pill" button
         Button addPillButton = new Button(this);
@@ -168,6 +186,34 @@ public class MainActivity extends Activity {
         });
         
         contentLayout.addView(testNotificationButton);
+        
+        // Add "Reschedule Notifications" button
+        Button rescheduleButton = new Button(this);
+        rescheduleButton.setText("📅 RESCHEDULE NOTIFICATIONS");
+        rescheduleButton.setTextSize(16);
+        rescheduleButton.setTextColor(Color.WHITE);
+        rescheduleButton.setBackgroundColor(Color.parseColor("#059669")); // Modern emerald
+        rescheduleButton.setTypeface(null, android.graphics.Typeface.BOLD);
+        
+        // Set button size and styling
+        LinearLayout.LayoutParams rescheduleButtonParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        rescheduleButtonParams.height = 70;
+        rescheduleButtonParams.setMargins(0, 12, 0, 0);
+        rescheduleButton.setLayoutParams(rescheduleButtonParams);
+        rescheduleButton.setElevation(4);
+        
+        // Set button click listener
+        rescheduleButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                scheduleAllPillNotifications();
+            }
+        });
+        
+        contentLayout.addView(rescheduleButton);
         layout.addView(contentLayout);
         
         setContentView(layout);
@@ -203,6 +249,10 @@ public class MainActivity extends Activity {
         
         // Create the pill card
         addPillCard(name, dosage, time, pillNames.size() - 1);
+        
+        // Schedule notification for this pill
+        int pillIndex = pillNames.size() - 1;
+        schedulePillNotification(pillIndex, name, dosage, time);
         
         // Save to storage
         savePillsToStorage();
@@ -534,6 +584,124 @@ public class MainActivity extends Activity {
         
         // Show toast confirmation
         android.widget.Toast.makeText(this, "🔔 Test notification sent!", android.widget.Toast.LENGTH_SHORT).show();
+    }
+    
+    // Pill notification scheduling methods
+    private void schedulePillNotification(int pillIndex, String pillName, String pillDosage, String timeString) {
+        try {
+            // Parse time string (e.g., "8:00 AM", "2:00 PM")
+            Calendar calendar = parseTimeString(timeString);
+            if (calendar == null) {
+                android.widget.Toast.makeText(this, "Invalid time format: " + timeString, android.widget.Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            // Create intent for the alarm
+            Intent intent = new Intent(this, PillReminderReceiver.class);
+            intent.setAction(ACTION_PILL_REMINDER);
+            intent.putExtra(EXTRA_PILL_NAME, pillName);
+            intent.putExtra(EXTRA_PILL_DOSAGE, pillDosage);
+            intent.putExtra(EXTRA_PILL_INDEX, pillIndex);
+            
+            // Create pending intent with unique request code
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this, 
+                pillIndex, // Use pill index as unique request code
+                intent, 
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            
+            // Schedule daily repeating alarm
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.getTimeInMillis(),
+                    pendingIntent
+                );
+                // Set repeating alarm for daily notifications
+                alarmManager.setRepeating(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.getTimeInMillis(),
+                    AlarmManager.INTERVAL_DAY,
+                    pendingIntent
+                );
+            } else {
+                alarmManager.setRepeating(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.getTimeInMillis(),
+                    AlarmManager.INTERVAL_DAY,
+                    pendingIntent
+                );
+            }
+            
+        } catch (Exception e) {
+            android.widget.Toast.makeText(this, "Error scheduling notification: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    private Calendar parseTimeString(String timeString) {
+        try {
+            // Remove extra spaces and convert to standard format
+            timeString = timeString.trim().toUpperCase();
+            
+            // Parse formats like "8:00 AM", "2:00 PM", "14:00", etc.
+            SimpleDateFormat format;
+            if (timeString.contains("AM") || timeString.contains("PM")) {
+                format = new SimpleDateFormat("h:mm a", Locale.US);
+            } else {
+                format = new SimpleDateFormat("H:mm", Locale.US);
+            }
+            
+            Date time = format.parse(timeString);
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(time);
+            
+            // Set to today's date
+            Calendar today = Calendar.getInstance();
+            calendar.set(Calendar.YEAR, today.get(Calendar.YEAR));
+            calendar.set(Calendar.MONTH, today.get(Calendar.MONTH));
+            calendar.set(Calendar.DAY_OF_MONTH, today.get(Calendar.DAY_OF_MONTH));
+            
+            // If the time has already passed today, set for tomorrow
+            if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
+                calendar.add(Calendar.DAY_OF_MONTH, 1);
+            }
+            
+            return calendar;
+            
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    private void scheduleAllPillNotifications() {
+        // Cancel all existing alarms first
+        cancelAllPillNotifications();
+        
+        // Schedule notifications for all pills
+        for (int i = 0; i < pillNames.size(); i++) {
+            schedulePillNotification(i, pillNames.get(i), pillDosages.get(i), pillTimes.get(i));
+        }
+        
+        android.widget.Toast.makeText(this, "📅 Scheduled " + pillNames.size() + " pill reminders", android.widget.Toast.LENGTH_SHORT).show();
+    }
+    
+    private void cancelAllPillNotifications() {
+        for (int i = 0; i < pillNames.size(); i++) {
+            cancelPillNotification(i);
+        }
+    }
+    
+    private void cancelPillNotification(int pillIndex) {
+        Intent intent = new Intent(this, PillReminderReceiver.class);
+        intent.setAction(ACTION_PILL_REMINDER);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+            this, 
+            pillIndex, 
+            intent, 
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        alarmManager.cancel(pendingIntent);
     }
     
     @Override
