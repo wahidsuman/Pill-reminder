@@ -51,6 +51,10 @@ public class MainActivity extends Activity {
     private ArrayList<Button> takeButtons = new ArrayList<>();
     private LinearLayout contentLayout;
     
+    // Status tracking
+    private TextView takenCountTextView;
+    private TextView remainingCountTextView;
+    
     // Storage
     private SharedPreferences sharedPreferences;
     private static final String PREFS_NAME = "MyPillsPrefs";
@@ -94,33 +98,118 @@ public class MainActivity extends Activity {
         layout.setBackgroundColor(Color.WHITE);
         layout.setGravity(Gravity.CENTER);
         
-        // Header with modern gradient-like background
+        // Header with modern styling inspired by React design
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.VERTICAL);
-        header.setBackgroundColor(Color.parseColor("#6366F1")); // Modern indigo
+        header.setBackgroundColor(Color.WHITE);
         header.setGravity(Gravity.CENTER);
-        header.setPadding(0, 80, 0, 80);
+        header.setPadding(40, 60, 40, 40);
         
+        // Large pill icon
+        TextView pillIcon = new TextView(this);
+        pillIcon.setText("💊");
+        pillIcon.setTextSize(48);
+        pillIcon.setGravity(Gravity.CENTER);
+        pillIcon.setPadding(0, 0, 0, 10);
+        
+        // App title with better typography
         TextView title = new TextView(this);
         title.setText("My Pills");
-        title.setTextSize(42);
-        title.setTextColor(Color.WHITE);
+        title.setTextSize(36);
+        title.setTextColor(Color.parseColor("#1F2937")); // Dark gray
         title.setGravity(Gravity.CENTER);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         title.setPadding(0, 0, 0, 15);
-        title.setShadowLayer(4, 0, 2, Color.parseColor("#1E1B4B")); // Subtle shadow
         
+        // Date display
+        TextView dateTextView = new TextView(this);
+        SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, MMM d", Locale.getDefault());
+        dateTextView.setText(dateFormat.format(new Date()));
+        dateTextView.setTextSize(20);
+        dateTextView.setTextColor(Color.parseColor("#6B7280")); // Medium gray
+        dateTextView.setGravity(Gravity.CENTER);
+        dateTextView.setPadding(0, 0, 0, 5);
+        
+        // Time display with modern styling
         timeTextView = new TextView(this);
-        timeTextView.setTextSize(32);
-        timeTextView.setTextColor(Color.parseColor("#E0E7FF")); // Light indigo
+        timeTextView.setTextSize(28);
+        timeTextView.setTextColor(Color.parseColor("#2563EB")); // Blue
         timeTextView.setGravity(Gravity.CENTER);
         timeTextView.setTypeface(null, android.graphics.Typeface.BOLD);
-        timeTextView.setShadowLayer(2, 0, 1, Color.parseColor("#1E1B4B"));
         
+        header.addView(pillIcon);
         header.addView(title);
+        header.addView(dateTextView);
         header.addView(timeTextView);
         
         layout.addView(header);
+        
+        // Status cards section
+        LinearLayout statusCardsLayout = new LinearLayout(this);
+        statusCardsLayout.setOrientation(LinearLayout.HORIZONTAL);
+        statusCardsLayout.setGravity(Gravity.CENTER);
+        statusCardsLayout.setPadding(24, 20, 24, 20);
+        statusCardsLayout.setBackgroundColor(Color.parseColor("#F9FAFB")); // Light gray background
+        
+        // Taken pills card
+        LinearLayout takenCard = new LinearLayout(this);
+        takenCard.setOrientation(LinearLayout.VERTICAL);
+        takenCard.setGravity(Gravity.CENTER);
+        takenCard.setPadding(40, 30, 40, 30);
+        takenCard.setBackgroundColor(Color.parseColor("#DCFCE7")); // Light green
+        takenCard.setElevation(4);
+        
+        takenCountTextView = new TextView(this);
+        takenCountTextView.setText("0");
+        takenCountTextView.setTextSize(48);
+        takenCountTextView.setTextColor(Color.parseColor("#166534")); // Dark green
+        takenCountTextView.setTypeface(null, android.graphics.Typeface.BOLD);
+        takenCountTextView.setGravity(Gravity.CENTER);
+        
+        TextView takenLabel = new TextView(this);
+        takenLabel.setText("Taken");
+        takenLabel.setTextSize(20);
+        takenLabel.setTextColor(Color.parseColor("#16A34A")); // Medium green
+        takenLabel.setTypeface(null, android.graphics.Typeface.BOLD);
+        takenLabel.setGravity(Gravity.CENTER);
+        
+        takenCard.addView(takenCountTextView);
+        takenCard.addView(takenLabel);
+        
+        // Remaining pills card
+        LinearLayout remainingCard = new LinearLayout(this);
+        remainingCard.setOrientation(LinearLayout.VERTICAL);
+        remainingCard.setGravity(Gravity.CENTER);
+        remainingCard.setPadding(40, 30, 40, 30);
+        remainingCard.setBackgroundColor(Color.parseColor("#FED7AA")); // Light orange
+        remainingCard.setElevation(4);
+        
+        remainingCountTextView = new TextView(this);
+        remainingCountTextView.setText("0");
+        remainingCountTextView.setTextSize(48);
+        remainingCountTextView.setTextColor(Color.parseColor("#C2410C")); // Dark orange
+        remainingCountTextView.setTypeface(null, android.graphics.Typeface.BOLD);
+        remainingCountTextView.setGravity(Gravity.CENTER);
+        
+        TextView remainingLabel = new TextView(this);
+        remainingLabel.setText("Remaining");
+        remainingLabel.setTextSize(20);
+        remainingLabel.setTextColor(Color.parseColor("#EA580C")); // Medium orange
+        remainingLabel.setTypeface(null, android.graphics.Typeface.BOLD);
+        remainingLabel.setGravity(Gravity.CENTER);
+        
+        remainingCard.addView(remainingCountTextView);
+        remainingCard.addView(remainingLabel);
+        
+        // Add cards to layout with spacing
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        cardParams.setMargins(8, 0, 8, 0);
+        takenCard.setLayoutParams(cardParams);
+        remainingCard.setLayoutParams(cardParams);
+        
+        statusCardsLayout.addView(takenCard);
+        statusCardsLayout.addView(remainingCard);
+        layout.addView(statusCardsLayout);
         
         // Add some padding to the main content area
         contentLayout = new LinearLayout(this);
@@ -140,12 +229,15 @@ public class MainActivity extends Activity {
         // Schedule notifications for all pills
         scheduleAllPillNotifications();
         
-        // Add "Add Pill" button
+        // Update status counts
+        updateStatusCounts();
+        
+        // Add "Add Pill" button with modern styling
         Button addPillButton = new Button(this);
-        addPillButton.setText("+ ADD NEW PILL");
-        addPillButton.setTextSize(20);
+        addPillButton.setText("+ Add New Medication");
+        addPillButton.setTextSize(22);
         addPillButton.setTextColor(Color.WHITE);
-        addPillButton.setBackgroundColor(Color.parseColor("#10B981")); // Modern emerald
+        addPillButton.setBackgroundColor(Color.parseColor("#2563EB")); // Blue
         addPillButton.setTypeface(null, android.graphics.Typeface.BOLD);
         
         // Set button size and modern styling
@@ -293,56 +385,67 @@ public class MainActivity extends Activity {
         
         // Save to storage
         savePillsToStorage();
+        
+        // Update status counts
+        updateStatusCounts();
     }
     
     private void addPillCard(String name, String dosage, String time, int index) {
-        // Create main card container
+        // Create main card container with modern styling
         LinearLayout mainCard = new LinearLayout(this);
         mainCard.setOrientation(LinearLayout.HORIZONTAL);
+        mainCard.setGravity(Gravity.CENTER_VERTICAL);
         mainCard.setBackgroundColor(Color.WHITE);
-        mainCard.setPadding(24, 24, 24, 24);
-        mainCard.setElevation(12); // More prominent shadow
+        mainCard.setPadding(32, 24, 32, 24);
+        mainCard.setElevation(12);
+        
+        // Create colored pill icon
+        TextView pillIcon = new TextView(this);
+        pillIcon.setText("💊");
+        pillIcon.setTextSize(48);
+        pillIcon.setPadding(0, 0, 20, 0);
         
         // Create left side with pill info
         LinearLayout pillInfo = new LinearLayout(this);
         pillInfo.setOrientation(LinearLayout.VERTICAL);
         pillInfo.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
         
-        // Create pill name
+        // Create pill name with better typography
         TextView pillName = new TextView(this);
         pillName.setText(name);
-        pillName.setTextSize(30);
+        pillName.setTextSize(28);
         pillName.setTextColor(Color.parseColor("#1F2937")); // Modern dark gray
-        pillName.setGravity(Gravity.CENTER);
+        pillName.setGravity(Gravity.START);
         pillName.setTypeface(null, android.graphics.Typeface.BOLD);
-        pillName.setPadding(0, 0, 0, 12);
+        pillName.setPadding(0, 0, 0, 8);
         
         // Create dosage
         TextView pillDosage = new TextView(this);
-        pillDosage.setText("💊 " + dosage);
-        pillDosage.setTextSize(22);
+        pillDosage.setText("📏 " + dosage);
+        pillDosage.setTextSize(20);
         pillDosage.setTextColor(Color.parseColor("#6B7280")); // Modern medium gray
-        pillDosage.setGravity(Gravity.CENTER);
-        pillDosage.setPadding(0, 0, 0, 8);
+        pillDosage.setGravity(Gravity.START);
+        pillDosage.setPadding(0, 0, 0, 4);
         
         // Create time
         TextView pillTime = new TextView(this);
         pillTime.setText("🕐 " + time);
-        pillTime.setTextSize(22);
-        pillTime.setTextColor(Color.parseColor("#6B7280")); // Modern medium gray
-        pillTime.setGravity(Gravity.CENTER);
+        pillTime.setTextSize(20);
+        pillTime.setTextColor(Color.parseColor("#2563EB")); // Blue
+        pillTime.setGravity(Gravity.START);
+        pillTime.setTypeface(null, android.graphics.Typeface.BOLD);
         
         // Add views to pill info
         pillInfo.addView(pillName);
         pillInfo.addView(pillDosage);
         pillInfo.addView(pillTime);
         
-        // Create Take button
+        // Create Take button with modern styling
         android.widget.Button takeButton = new android.widget.Button(this);
         takeButton.setText("TAKE");
         takeButton.setTextSize(18);
         takeButton.setTextColor(Color.WHITE);
-        takeButton.setBackgroundColor(Color.parseColor("#6366F1")); // Modern indigo
+        takeButton.setBackgroundColor(Color.parseColor("#2563EB")); // Blue
         takeButton.setTypeface(null, android.graphics.Typeface.BOLD);
         
         // Set button size (at least 60px tall)
@@ -370,6 +473,7 @@ public class MainActivity extends Activity {
         takeButtons.add(takeButton);
         
         // Add views to main card
+        mainCard.addView(pillIcon);
         mainCard.addView(pillInfo);
         mainCard.addView(takeButton);
         
@@ -399,38 +503,73 @@ public class MainActivity extends Activity {
         // Save to storage
         savePillsToStorage();
         
+        // Update status counts
+        updateStatusCounts();
+        
         // Optional: Show a brief confirmation
         android.widget.Toast.makeText(this, "✅ Pill taken!", android.widget.Toast.LENGTH_SHORT).show();
     }
     
+    private void updateStatusCounts() {
+        int takenCount = 0;
+        int remainingCount = 0;
+        
+        for (Boolean taken : pillsTaken) {
+            if (taken) {
+                takenCount++;
+            } else {
+                remainingCount++;
+            }
+        }
+        
+        if (takenCountTextView != null) {
+            takenCountTextView.setText(String.valueOf(takenCount));
+        }
+        if (remainingCountTextView != null) {
+            remainingCountTextView.setText(String.valueOf(remainingCount));
+        }
+    }
+    
     private void showAddPillDialog() {
-        // Create dialog layout
+        // Create dialog layout with modern styling
         LinearLayout dialogLayout = new LinearLayout(this);
         dialogLayout.setOrientation(LinearLayout.VERTICAL);
         dialogLayout.setPadding(48, 40, 48, 40);
-        dialogLayout.setBackgroundColor(Color.parseColor("#F8FAFC")); // Modern light background
+        dialogLayout.setBackgroundColor(Color.WHITE);
         
-        // Create input fields
+        // Title
+        TextView titleText = new TextView(this);
+        titleText.setText("Add Medication");
+        titleText.setTextSize(28);
+        titleText.setTextColor(Color.parseColor("#1F2937"));
+        titleText.setTypeface(null, android.graphics.Typeface.BOLD);
+        titleText.setGravity(Gravity.CENTER);
+        titleText.setPadding(0, 0, 0, 32);
+        
+        // Create input fields with better styling
         EditText nameInput = new EditText(this);
-        nameInput.setHint("💊 Medication Name (e.g., Aspirin)");
-        nameInput.setTextSize(18);
+        nameInput.setHint("Medication Name");
+        nameInput.setTextSize(20);
         nameInput.setPadding(24, 24, 24, 24);
-        nameInput.setBackgroundColor(Color.WHITE);
-        nameInput.setElevation(4);
+        nameInput.setBackgroundColor(Color.parseColor("#F9FAFB"));
+        nameInput.setHintTextColor(Color.parseColor("#9CA3AF"));
+        nameInput.setTextColor(Color.parseColor("#1F2937"));
         
         EditText dosageInput = new EditText(this);
-        dosageInput.setHint("📏 Dosage (e.g., 100mg)");
-        dosageInput.setTextSize(18);
+        dosageInput.setHint("Dosage (e.g., 100mg)");
+        dosageInput.setTextSize(20);
         dosageInput.setPadding(24, 24, 24, 24);
-        dosageInput.setBackgroundColor(Color.WHITE);
-        dosageInput.setElevation(4);
+        dosageInput.setBackgroundColor(Color.parseColor("#F9FAFB"));
+        dosageInput.setHintTextColor(Color.parseColor("#9CA3AF"));
+        dosageInput.setTextColor(Color.parseColor("#1F2937"));
         
         EditText timeInput = new EditText(this);
-        timeInput.setHint("🕐 Time (e.g., 8:00 AM)");
-        timeInput.setTextSize(18);
+        timeInput.setHint("Time (e.g., 8:00 AM)");
+        timeInput.setTextSize(20);
         timeInput.setPadding(24, 24, 24, 24);
-        timeInput.setBackgroundColor(Color.WHITE);
-        timeInput.setElevation(4);
+        timeInput.setBackgroundColor(Color.parseColor("#F9FAFB"));
+        timeInput.setHintTextColor(Color.parseColor("#9CA3AF"));
+        timeInput.setTextColor(Color.parseColor("#1F2937"));
         
         // Add spacing between fields
         LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(
@@ -443,16 +582,16 @@ public class MainActivity extends Activity {
         timeInput.setLayoutParams(inputParams);
         
         // Add fields to dialog
+        dialogLayout.addView(titleText);
         dialogLayout.addView(nameInput);
         dialogLayout.addView(dosageInput);
         dialogLayout.addView(timeInput);
         
         // Create dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Add New Pill");
         builder.setView(dialogLayout);
         
-        builder.setPositiveButton("ADD PILL", (dialog, which) -> {
+        builder.setPositiveButton("Add Pill", (dialog, which) -> {
             String name = nameInput.getText().toString().trim();
             String dosage = dosageInput.getText().toString().trim();
             String time = timeInput.getText().toString().trim();
