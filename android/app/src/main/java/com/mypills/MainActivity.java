@@ -2,6 +2,7 @@ package com.mypills;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.TextView;
 import android.widget.LinearLayout;
@@ -16,6 +17,11 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MainActivity extends Activity {
     private TextView timeTextView;
@@ -30,10 +36,18 @@ public class MainActivity extends Activity {
     private ArrayList<LinearLayout> pillCards = new ArrayList<>();
     private ArrayList<Button> takeButtons = new ArrayList<>();
     private LinearLayout contentLayout;
+    
+    // Storage
+    private SharedPreferences sharedPreferences;
+    private static final String PREFS_NAME = "MyPillsPrefs";
+    private static final String PILLS_KEY = "saved_pills";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Initialize storage
+        sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -75,10 +89,13 @@ public class MainActivity extends Activity {
         contentLayout.setPadding(24, 40, 24, 40);
         contentLayout.setBackgroundColor(Color.parseColor("#F8FAFC")); // Modern light gray
         
-        // Add sample pills
-        addPill("Vitamin D", "1000 IU", "8:00 AM");
-        addPill("Blood Pressure", "5mg", "2:00 PM");
-        addPill("Multivitamin", "1 tablet", "6:00 PM");
+        // Load saved pills or add sample pills
+        if (!loadPillsFromStorage()) {
+            // If no saved pills, add sample pills
+            addPill("Vitamin D", "1000 IU", "8:00 AM");
+            addPill("Blood Pressure", "5mg", "2:00 PM");
+            addPill("Multivitamin", "1 tablet", "6:00 PM");
+        }
         
         // Add "Add Pill" button
         Button addPillButton = new Button(this);
@@ -142,6 +159,9 @@ public class MainActivity extends Activity {
         
         // Create the pill card
         addPillCard(name, dosage, time, pillNames.size() - 1);
+        
+        // Save to storage
+        savePillsToStorage();
     }
     
     private void addPillCard(String name, String dosage, String time, int index) {
@@ -245,6 +265,9 @@ public class MainActivity extends Activity {
         takeButtons.get(index).setBackgroundColor(Color.parseColor("#10B981")); // Modern emerald
         takeButtons.get(index).setEnabled(false);
         
+        // Save to storage
+        savePillsToStorage();
+        
         // Optional: Show a brief confirmation
         android.widget.Toast.makeText(this, "✅ Pill taken!", android.widget.Toast.LENGTH_SHORT).show();
     }
@@ -342,9 +365,96 @@ public class MainActivity extends Activity {
         }
     }
     
+    // Storage methods
+    private void savePillsToStorage() {
+        try {
+            JSONArray pillsArray = new JSONArray();
+            
+            for (int i = 0; i < pillNames.size(); i++) {
+                JSONObject pillObject = new JSONObject();
+                pillObject.put("name", pillNames.get(i));
+                pillObject.put("dosage", pillDosages.get(i));
+                pillObject.put("time", pillTimes.get(i));
+                pillObject.put("taken", pillsTaken.get(i));
+                pillsArray.put(pillObject);
+            }
+            
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString(PILLS_KEY, pillsArray.toString());
+            editor.apply();
+            
+        } catch (JSONException e) {
+            android.widget.Toast.makeText(this, "Error saving pills: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            android.widget.Toast.makeText(this, "Storage error: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    private boolean loadPillsFromStorage() {
+        try {
+            String pillsJson = sharedPreferences.getString(PILLS_KEY, null);
+            if (pillsJson == null || pillsJson.isEmpty()) {
+                return false; // No saved pills
+            }
+            
+            JSONArray pillsArray = new JSONArray(pillsJson);
+            
+            // Clear existing pills
+            pillNames.clear();
+            pillDosages.clear();
+            pillTimes.clear();
+            pillsTaken.clear();
+            
+            // Load pills from storage
+            for (int i = 0; i < pillsArray.length(); i++) {
+                JSONObject pillObject = pillsArray.getJSONObject(i);
+                String name = pillObject.getString("name");
+                String dosage = pillObject.getString("dosage");
+                String time = pillObject.getString("time");
+                boolean taken = pillObject.getBoolean("taken");
+                
+                // Add to lists
+                pillNames.add(name);
+                pillDosages.add(dosage);
+                pillTimes.add(time);
+                pillsTaken.add(taken);
+                
+                // Create the pill card
+                addPillCard(name, dosage, time, pillNames.size() - 1);
+                
+                // If pill was taken, update its appearance
+                if (taken) {
+                    int index = pillNames.size() - 1;
+                    pillCards.get(index).setBackgroundColor(Color.parseColor("#ECFDF5"));
+                    takeButtons.get(index).setText("✓ TAKEN");
+                    takeButtons.get(index).setBackgroundColor(Color.parseColor("#10B981"));
+                    takeButtons.get(index).setEnabled(false);
+                }
+            }
+            
+            return true; // Successfully loaded pills
+            
+        } catch (JSONException e) {
+            android.widget.Toast.makeText(this, "Error loading pills: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
+            return false;
+        } catch (Exception e) {
+            android.widget.Toast.makeText(this, "Storage error: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
+            return false;
+        }
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Save pills when app goes to background
+        savePillsToStorage();
+    }
+    
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // Save pills when app is destroyed
+        savePillsToStorage();
         if (timeUpdater != null) {
             handler.removeCallbacks(timeUpdater);
         }
