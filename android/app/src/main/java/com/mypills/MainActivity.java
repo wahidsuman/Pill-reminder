@@ -40,25 +40,28 @@ public class MainActivity extends Activity {
         layout.setBackgroundColor(Color.WHITE);
         layout.setGravity(Gravity.CENTER);
         
-        // Header with blue background
+        // Header with modern gradient-like background
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.VERTICAL);
-        header.setBackgroundColor(Color.parseColor("#2196F3"));
+        header.setBackgroundColor(Color.parseColor("#6366F1")); // Modern indigo
         header.setGravity(Gravity.CENTER);
-        header.setPadding(0, 60, 0, 60);
+        header.setPadding(0, 80, 0, 80);
         
         TextView title = new TextView(this);
         title.setText("My Pills");
-        title.setTextSize(36);
+        title.setTextSize(42);
         title.setTextColor(Color.WHITE);
         title.setGravity(Gravity.CENTER);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setPadding(0, 0, 0, 15);
+        title.setShadowLayer(4, 0, 2, Color.parseColor("#1E1B4B")); // Subtle shadow
         
         timeTextView = new TextView(this);
-        timeTextView.setTextSize(28);
-        timeTextView.setTextColor(Color.WHITE);
+        timeTextView.setTextSize(32);
+        timeTextView.setTextColor(Color.parseColor("#E0E7FF")); // Light indigo
         timeTextView.setGravity(Gravity.CENTER);
         timeTextView.setTypeface(null, android.graphics.Typeface.BOLD);
+        timeTextView.setShadowLayer(2, 0, 1, Color.parseColor("#1E1B4B"));
         
         header.addView(title);
         header.addView(timeTextView);
@@ -69,7 +72,8 @@ public class MainActivity extends Activity {
         contentLayout = new LinearLayout(this);
         contentLayout.setOrientation(LinearLayout.VERTICAL);
         contentLayout.setGravity(Gravity.CENTER);
-        contentLayout.setPadding(20, 30, 20, 30);
+        contentLayout.setPadding(24, 40, 24, 40);
+        contentLayout.setBackgroundColor(Color.parseColor("#F8FAFC")); // Modern light gray
         
         // Add sample pills
         addPill("Vitamin D", "1000 IU", "8:00 AM");
@@ -78,20 +82,21 @@ public class MainActivity extends Activity {
         
         // Add "Add Pill" button
         Button addPillButton = new Button(this);
-        addPillButton.setText("ADD NEW PILL");
-        addPillButton.setTextSize(22);
+        addPillButton.setText("+ ADD NEW PILL");
+        addPillButton.setTextSize(20);
         addPillButton.setTextColor(Color.WHITE);
-        addPillButton.setBackgroundColor(Color.parseColor("#FF9800"));
+        addPillButton.setBackgroundColor(Color.parseColor("#10B981")); // Modern emerald
         addPillButton.setTypeface(null, android.graphics.Typeface.BOLD);
         
-        // Set button size
+        // Set button size and modern styling
         LinearLayout.LayoutParams addButtonParams = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        addButtonParams.height = 80; // 80px tall
-        addButtonParams.setMargins(0, 20, 0, 0);
+        addButtonParams.height = 88; // Slightly taller
+        addButtonParams.setMargins(0, 32, 0, 0);
         addPillButton.setLayoutParams(addButtonParams);
+        addPillButton.setElevation(8); // Modern shadow
         
         // Set button click listener
         addPillButton.setOnClickListener(new View.OnClickListener() {
@@ -144,8 +149,8 @@ public class MainActivity extends Activity {
         LinearLayout mainCard = new LinearLayout(this);
         mainCard.setOrientation(LinearLayout.HORIZONTAL);
         mainCard.setBackgroundColor(Color.WHITE);
-        mainCard.setPadding(20, 20, 20, 20);
-        mainCard.setElevation(8);
+        mainCard.setPadding(24, 24, 24, 24);
+        mainCard.setElevation(12); // More prominent shadow
         
         // Create left side with pill info
         LinearLayout pillInfo = new LinearLayout(this);
@@ -155,25 +160,25 @@ public class MainActivity extends Activity {
         // Create pill name
         TextView pillName = new TextView(this);
         pillName.setText(name);
-        pillName.setTextSize(28);
-        pillName.setTextColor(Color.parseColor("#333333"));
+        pillName.setTextSize(30);
+        pillName.setTextColor(Color.parseColor("#1F2937")); // Modern dark gray
         pillName.setGravity(Gravity.CENTER);
         pillName.setTypeface(null, android.graphics.Typeface.BOLD);
-        pillName.setPadding(0, 0, 0, 10);
+        pillName.setPadding(0, 0, 0, 12);
         
         // Create dosage
         TextView pillDosage = new TextView(this);
-        pillDosage.setText("Dosage: " + dosage);
-        pillDosage.setTextSize(24);
-        pillDosage.setTextColor(Color.parseColor("#666666"));
+        pillDosage.setText("💊 " + dosage);
+        pillDosage.setTextSize(22);
+        pillDosage.setTextColor(Color.parseColor("#6B7280")); // Modern medium gray
         pillDosage.setGravity(Gravity.CENTER);
         pillDosage.setPadding(0, 0, 0, 8);
         
         // Create time
         TextView pillTime = new TextView(this);
-        pillTime.setText("Time: " + time);
-        pillTime.setTextSize(24);
-        pillTime.setTextColor(Color.parseColor("#666666"));
+        pillTime.setText("🕐 " + time);
+        pillTime.setTextSize(22);
+        pillTime.setTextColor(Color.parseColor("#6B7280")); // Modern medium gray
         pillTime.setGravity(Gravity.CENTER);
         
         // Add views to pill info
@@ -184,9 +189,9 @@ public class MainActivity extends Activity {
         // Create Take button
         android.widget.Button takeButton = new android.widget.Button(this);
         takeButton.setText("TAKE");
-        takeButton.setTextSize(20);
+        takeButton.setTextSize(18);
         takeButton.setTextColor(Color.WHITE);
-        takeButton.setBackgroundColor(Color.parseColor("#2196F3"));
+        takeButton.setBackgroundColor(Color.parseColor("#6366F1")); // Modern indigo
         takeButton.setTypeface(null, android.graphics.Typeface.BOLD);
         
         // Set button size (at least 60px tall)
@@ -194,10 +199,11 @@ public class MainActivity extends Activity {
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        buttonParams.width = 120; // 120px wide
-        buttonParams.height = 80; // 80px tall (more than 60px requirement)
-        buttonParams.setMargins(20, 0, 0, 0);
+        buttonParams.width = 128; // Slightly wider
+        buttonParams.height = 88; // Slightly taller
+        buttonParams.setMargins(24, 0, 0, 0);
         takeButton.setLayoutParams(buttonParams);
+        takeButton.setElevation(6); // Modern shadow
         
         // Set button click listener
         final int pillIndex = index;
@@ -221,7 +227,7 @@ public class MainActivity extends Activity {
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        cardParams.setMargins(0, 0, 0, 20);
+        cardParams.setMargins(0, 0, 0, 24); // More spacing between cards
         mainCard.setLayoutParams(cardParams);
         
         // Add card to content layout (before the Add Pill button)
@@ -231,49 +237,53 @@ public class MainActivity extends Activity {
     private void takePill(int index) {
         pillsTaken.set(index, true);
         
-        // Change card appearance to green
-        pillCards.get(index).setBackgroundColor(Color.parseColor("#E8F5E8"));
+        // Change card appearance to modern green
+        pillCards.get(index).setBackgroundColor(Color.parseColor("#ECFDF5")); // Modern light green
         
         // Change button appearance
-        takeButtons.get(index).setText("TAKEN");
-        takeButtons.get(index).setBackgroundColor(Color.parseColor("#4CAF50"));
+        takeButtons.get(index).setText("✓ TAKEN");
+        takeButtons.get(index).setBackgroundColor(Color.parseColor("#10B981")); // Modern emerald
         takeButtons.get(index).setEnabled(false);
         
         // Optional: Show a brief confirmation
-        android.widget.Toast.makeText(this, "Pill taken!", android.widget.Toast.LENGTH_SHORT).show();
+        android.widget.Toast.makeText(this, "✅ Pill taken!", android.widget.Toast.LENGTH_SHORT).show();
     }
     
     private void showAddPillDialog() {
         // Create dialog layout
         LinearLayout dialogLayout = new LinearLayout(this);
         dialogLayout.setOrientation(LinearLayout.VERTICAL);
-        dialogLayout.setPadding(40, 30, 40, 30);
+        dialogLayout.setPadding(48, 40, 48, 40);
+        dialogLayout.setBackgroundColor(Color.parseColor("#F8FAFC")); // Modern light background
         
         // Create input fields
         EditText nameInput = new EditText(this);
-        nameInput.setHint("Medication Name (e.g., Aspirin)");
+        nameInput.setHint("💊 Medication Name (e.g., Aspirin)");
         nameInput.setTextSize(18);
-        nameInput.setPadding(20, 20, 20, 20);
+        nameInput.setPadding(24, 24, 24, 24);
         nameInput.setBackgroundColor(Color.WHITE);
+        nameInput.setElevation(4);
         
         EditText dosageInput = new EditText(this);
-        dosageInput.setHint("Dosage (e.g., 100mg)");
+        dosageInput.setHint("📏 Dosage (e.g., 100mg)");
         dosageInput.setTextSize(18);
-        dosageInput.setPadding(20, 20, 20, 20);
+        dosageInput.setPadding(24, 24, 24, 24);
         dosageInput.setBackgroundColor(Color.WHITE);
+        dosageInput.setElevation(4);
         
         EditText timeInput = new EditText(this);
-        timeInput.setHint("Time (e.g., 8:00 AM)");
+        timeInput.setHint("🕐 Time (e.g., 8:00 AM)");
         timeInput.setTextSize(18);
-        timeInput.setPadding(20, 20, 20, 20);
+        timeInput.setPadding(24, 24, 24, 24);
         timeInput.setBackgroundColor(Color.WHITE);
+        timeInput.setElevation(4);
         
         // Add spacing between fields
         LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        inputParams.setMargins(0, 0, 0, 20);
+        inputParams.setMargins(0, 0, 0, 24); // More spacing
         nameInput.setLayoutParams(inputParams);
         dosageInput.setLayoutParams(inputParams);
         timeInput.setLayoutParams(inputParams);
@@ -318,15 +328,17 @@ public class MainActivity extends Activity {
         if (positiveButton != null) {
             positiveButton.setTextSize(18);
             positiveButton.setTextColor(Color.WHITE);
-            positiveButton.setBackgroundColor(Color.parseColor("#4CAF50"));
-            positiveButton.setPadding(30, 20, 30, 20);
+            positiveButton.setBackgroundColor(Color.parseColor("#10B981")); // Modern emerald
+            positiveButton.setPadding(32, 24, 32, 24);
+            positiveButton.setElevation(6);
         }
         
         if (negativeButton != null) {
             negativeButton.setTextSize(18);
             negativeButton.setTextColor(Color.WHITE);
-            negativeButton.setBackgroundColor(Color.parseColor("#F44336"));
-            negativeButton.setPadding(30, 20, 30, 20);
+            negativeButton.setBackgroundColor(Color.parseColor("#EF4444")); // Modern red
+            negativeButton.setPadding(32, 24, 32, 24);
+            negativeButton.setElevation(6);
         }
     }
     
