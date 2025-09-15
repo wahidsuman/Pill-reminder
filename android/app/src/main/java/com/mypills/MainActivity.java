@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.widget.TextView;
@@ -23,6 +24,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.os.Handler;
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -66,6 +69,9 @@ public class MainActivity extends Activity {
     private static final String EXTRA_PILL_NAME = "pill_name";
     private static final String EXTRA_PILL_DOSAGE = "pill_dosage";
     private static final String EXTRA_PILL_INDEX = "pill_index";
+    
+    // Permissions
+    private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 1001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,6 +79,9 @@ public class MainActivity extends Activity {
         
         // Initialize storage
         sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        
+        // Request notification permissions
+        requestNotificationPermissions();
         
         // Create notification channel
         createNotificationChannel();
@@ -214,6 +223,34 @@ public class MainActivity extends Activity {
         });
         
         contentLayout.addView(rescheduleButton);
+        
+        // Add "Test Background Notification" button
+        Button testBackgroundButton = new Button(this);
+        testBackgroundButton.setText("🌙 TEST BACKGROUND NOTIFICATION");
+        testBackgroundButton.setTextSize(16);
+        testBackgroundButton.setTextColor(Color.WHITE);
+        testBackgroundButton.setBackgroundColor(Color.parseColor("#DC2626")); // Modern red
+        testBackgroundButton.setTypeface(null, android.graphics.Typeface.BOLD);
+        
+        // Set button size and styling
+        LinearLayout.LayoutParams testBackgroundButtonParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        testBackgroundButtonParams.height = 70;
+        testBackgroundButtonParams.setMargins(0, 12, 0, 0);
+        testBackgroundButton.setLayoutParams(testBackgroundButtonParams);
+        testBackgroundButton.setElevation(4);
+        
+        // Set button click listener
+        testBackgroundButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                testBackgroundNotification();
+            }
+        });
+        
+        contentLayout.addView(testBackgroundButton);
         layout.addView(contentLayout);
         
         setContentView(layout);
@@ -537,18 +574,58 @@ public class MainActivity extends Activity {
         }
     }
     
-    // Notification methods
+    // Permission and notification methods
+    private void requestNotificationPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) 
+                != PackageManager.PERMISSION_GRANTED) {
+                
+                // Show explanation dialog
+                new AlertDialog.Builder(this)
+                    .setTitle("🔔 Notification Permission Required")
+                    .setMessage("My Pills needs notification permission to send you pill reminders even when the app is closed. This is essential for medication reminders!")
+                    .setPositiveButton("Grant Permission", (dialog, which) -> {
+                        ActivityCompat.requestPermissions(this, 
+                            new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 
+                            NOTIFICATION_PERMISSION_REQUEST_CODE);
+                    })
+                    .setNegativeButton("Later", (dialog, which) -> {
+                        android.widget.Toast.makeText(this, "You can enable notifications in Settings later", android.widget.Toast.LENGTH_LONG).show();
+                    })
+                    .setCancelable(false)
+                    .show();
+            }
+        }
+    }
+    
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == NOTIFICATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                android.widget.Toast.makeText(this, "✅ Notification permission granted! Pill reminders will work in background.", android.widget.Toast.LENGTH_LONG).show();
+            } else {
+                android.widget.Toast.makeText(this, "⚠️ Notification permission denied. Reminders may not work when app is closed.", android.widget.Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+    
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             );
             channel.setDescription(CHANNEL_DESCRIPTION);
             channel.enableLights(true);
             channel.setLightColor(Color.parseColor("#6366F1"));
             channel.enableVibration(true);
+            channel.setVibrationPattern(new long[]{0, 500, 200, 500});
+            channel.setShowBadge(true);
+            channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+            channel.setBypassDnd(false);
+            channel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, null);
             
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
@@ -584,6 +661,41 @@ public class MainActivity extends Activity {
         
         // Show toast confirmation
         android.widget.Toast.makeText(this, "🔔 Test notification sent!", android.widget.Toast.LENGTH_SHORT).show();
+    }
+    
+    private void testBackgroundNotification() {
+        // Schedule a test notification for 10 seconds from now
+        Calendar testTime = Calendar.getInstance();
+        testTime.add(Calendar.SECOND, 10);
+        
+        Intent intent = new Intent(this, PillReminderReceiver.class);
+        intent.setAction(ACTION_PILL_REMINDER);
+        intent.putExtra(EXTRA_PILL_NAME, "Test Background Pill");
+        intent.putExtra(EXTRA_PILL_DOSAGE, "1 tablet");
+        intent.putExtra(EXTRA_PILL_INDEX, 999);
+        
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+            this, 
+            999,
+            intent, 
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                testTime.getTimeInMillis(),
+                pendingIntent
+            );
+        } else {
+            alarmManager.setExact(
+                AlarmManager.RTC_WAKEUP,
+                testTime.getTimeInMillis(),
+                pendingIntent
+            );
+        }
+        
+        android.widget.Toast.makeText(this, "🌙 Background test scheduled! Close the app and wait 10 seconds.", android.widget.Toast.LENGTH_LONG).show();
     }
     
     // Pill notification scheduling methods

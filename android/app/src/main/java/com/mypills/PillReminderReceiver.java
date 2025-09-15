@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
+import android.os.PowerManager;
 import androidx.core.app.NotificationCompat;
 
 public class PillReminderReceiver extends BroadcastReceiver {
@@ -23,8 +24,17 @@ public class PillReminderReceiver extends BroadcastReceiver {
             String pillDosage = intent.getStringExtra("pill_dosage");
             int pillIndex = intent.getIntExtra("pill_index", 0);
             
-            // Create notification channel if needed
-            createNotificationChannel(context);
+            // Acquire wake lock to ensure notification is shown even when device is sleeping
+            PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            PowerManager.WakeLock wakeLock = null;
+            if (powerManager != null) {
+                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyPills:PillReminder");
+                wakeLock.acquire(10000); // Hold for 10 seconds
+            }
+            
+            try {
+                // Create notification channel if needed
+                createNotificationChannel(context);
             
             // Create intent for when notification is tapped
             Intent appIntent = new Intent(context, MainActivity.class);
@@ -50,9 +60,16 @@ public class PillReminderReceiver extends BroadcastReceiver {
                 .setVibrate(new long[]{0, 500, 200, 500})
                 .setLights(Color.parseColor("#6366F1"), 1000, 1000);
             
-            // Show notification
-            NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-            notificationManager.notify(pillIndex + 1000, builder.build()); // Use unique ID for each pill
+                // Show notification
+                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                notificationManager.notify(pillIndex + 1000, builder.build()); // Use unique ID for each pill
+                
+            } finally {
+                // Release wake lock
+                if (wakeLock != null && wakeLock.isHeld()) {
+                    wakeLock.release();
+                }
+            }
         }
     }
     
