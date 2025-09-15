@@ -1,25 +1,35 @@
 package com.mypills;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.widget.TextView;
 import android.widget.LinearLayout;
+import android.widget.EditText;
+import android.widget.Button;
 import android.graphics.Color;
 import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.os.Handler;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.ArrayList;
 
 public class MainActivity extends Activity {
     private TextView timeTextView;
     private Handler handler = new Handler();
     private Runnable timeUpdater;
     
-    // Track which pills are taken
-    private boolean[] pillsTaken = {false, false, false};
-    private LinearLayout[] pillCards = new LinearLayout[3];
-    private android.widget.Button[] takeButtons = new android.widget.Button[3];
+    // Track pills dynamically
+    private ArrayList<String> pillNames = new ArrayList<>();
+    private ArrayList<String> pillDosages = new ArrayList<>();
+    private ArrayList<String> pillTimes = new ArrayList<>();
+    private ArrayList<Boolean> pillsTaken = new ArrayList<>();
+    private ArrayList<LinearLayout> pillCards = new ArrayList<>();
+    private ArrayList<Button> takeButtons = new ArrayList<>();
+    private LinearLayout contentLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,17 +66,43 @@ public class MainActivity extends Activity {
         layout.addView(header);
         
         // Add some padding to the main content area
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setGravity(Gravity.CENTER);
-        content.setPadding(20, 30, 20, 30);
+        contentLayout = new LinearLayout(this);
+        contentLayout.setOrientation(LinearLayout.VERTICAL);
+        contentLayout.setGravity(Gravity.CENTER);
+        contentLayout.setPadding(20, 30, 20, 30);
         
         // Add sample pills
-        addPillCard(content, "Vitamin D", "1000 IU", "8:00 AM", 0);
-        addPillCard(content, "Blood Pressure", "5mg", "2:00 PM", 1);
-        addPillCard(content, "Multivitamin", "1 tablet", "6:00 PM", 2);
+        addPill("Vitamin D", "1000 IU", "8:00 AM");
+        addPill("Blood Pressure", "5mg", "2:00 PM");
+        addPill("Multivitamin", "1 tablet", "6:00 PM");
         
-        layout.addView(content);
+        // Add "Add Pill" button
+        Button addPillButton = new Button(this);
+        addPillButton.setText("ADD NEW PILL");
+        addPillButton.setTextSize(22);
+        addPillButton.setTextColor(Color.WHITE);
+        addPillButton.setBackgroundColor(Color.parseColor("#FF9800"));
+        addPillButton.setTypeface(null, android.graphics.Typeface.BOLD);
+        
+        // Set button size
+        LinearLayout.LayoutParams addButtonParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        addButtonParams.height = 80; // 80px tall
+        addButtonParams.setMargins(0, 20, 0, 0);
+        addPillButton.setLayoutParams(addButtonParams);
+        
+        // Set button click listener
+        addPillButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showAddPillDialog();
+            }
+        });
+        
+        contentLayout.addView(addPillButton);
+        layout.addView(contentLayout);
         
         setContentView(layout);
         
@@ -92,7 +128,18 @@ public class MainActivity extends Activity {
         handler.post(timeUpdater);
     }
     
-    private void addPillCard(LinearLayout parent, String name, String dosage, String time, int index) {
+    private void addPill(String name, String dosage, String time) {
+        // Add to lists
+        pillNames.add(name);
+        pillDosages.add(dosage);
+        pillTimes.add(time);
+        pillsTaken.add(false);
+        
+        // Create the pill card
+        addPillCard(name, dosage, time, pillNames.size() - 1);
+    }
+    
+    private void addPillCard(String name, String dosage, String time, int index) {
         // Create main card container
         LinearLayout mainCard = new LinearLayout(this);
         mainCard.setOrientation(LinearLayout.HORIZONTAL);
@@ -162,8 +209,8 @@ public class MainActivity extends Activity {
         });
         
         // Store references
-        pillCards[index] = mainCard;
-        takeButtons[index] = takeButton;
+        pillCards.add(mainCard);
+        takeButtons.add(takeButton);
         
         // Add views to main card
         mainCard.addView(pillInfo);
@@ -177,23 +224,110 @@ public class MainActivity extends Activity {
         cardParams.setMargins(0, 0, 0, 20);
         mainCard.setLayoutParams(cardParams);
         
-        // Add card to parent
-        parent.addView(mainCard);
+        // Add card to content layout (before the Add Pill button)
+        contentLayout.addView(mainCard, contentLayout.getChildCount() - 1);
     }
     
     private void takePill(int index) {
-        pillsTaken[index] = true;
+        pillsTaken.set(index, true);
         
         // Change card appearance to green
-        pillCards[index].setBackgroundColor(Color.parseColor("#E8F5E8"));
+        pillCards.get(index).setBackgroundColor(Color.parseColor("#E8F5E8"));
         
         // Change button appearance
-        takeButtons[index].setText("TAKEN");
-        takeButtons[index].setBackgroundColor(Color.parseColor("#4CAF50"));
-        takeButtons[index].setEnabled(false);
+        takeButtons.get(index).setText("TAKEN");
+        takeButtons.get(index).setBackgroundColor(Color.parseColor("#4CAF50"));
+        takeButtons.get(index).setEnabled(false);
         
         // Optional: Show a brief confirmation
         android.widget.Toast.makeText(this, "Pill taken!", android.widget.Toast.LENGTH_SHORT).show();
+    }
+    
+    private void showAddPillDialog() {
+        // Create dialog layout
+        LinearLayout dialogLayout = new LinearLayout(this);
+        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        dialogLayout.setPadding(40, 30, 40, 30);
+        
+        // Create input fields
+        EditText nameInput = new EditText(this);
+        nameInput.setHint("Medication Name (e.g., Aspirin)");
+        nameInput.setTextSize(18);
+        nameInput.setPadding(20, 20, 20, 20);
+        nameInput.setBackgroundColor(Color.WHITE);
+        
+        EditText dosageInput = new EditText(this);
+        dosageInput.setHint("Dosage (e.g., 100mg)");
+        dosageInput.setTextSize(18);
+        dosageInput.setPadding(20, 20, 20, 20);
+        dosageInput.setBackgroundColor(Color.WHITE);
+        
+        EditText timeInput = new EditText(this);
+        timeInput.setHint("Time (e.g., 8:00 AM)");
+        timeInput.setTextSize(18);
+        timeInput.setPadding(20, 20, 20, 20);
+        timeInput.setBackgroundColor(Color.WHITE);
+        
+        // Add spacing between fields
+        LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        inputParams.setMargins(0, 0, 0, 20);
+        nameInput.setLayoutParams(inputParams);
+        dosageInput.setLayoutParams(inputParams);
+        timeInput.setLayoutParams(inputParams);
+        
+        // Add fields to dialog
+        dialogLayout.addView(nameInput);
+        dialogLayout.addView(dosageInput);
+        dialogLayout.addView(timeInput);
+        
+        // Create dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Add New Pill");
+        builder.setView(dialogLayout);
+        
+        builder.setPositiveButton("ADD PILL", (dialog, which) -> {
+            String name = nameInput.getText().toString().trim();
+            String dosage = dosageInput.getText().toString().trim();
+            String time = timeInput.getText().toString().trim();
+            
+            // Basic form validation
+            if (name.isEmpty() || dosage.isEmpty() || time.isEmpty()) {
+                android.widget.Toast.makeText(this, "Please fill in all fields!", android.widget.Toast.LENGTH_LONG).show();
+                return;
+            }
+            
+            // Add the new pill
+            addPill(name, dosage, time);
+            android.widget.Toast.makeText(this, "Pill added successfully!", android.widget.Toast.LENGTH_SHORT).show();
+        });
+        
+        builder.setNegativeButton("CANCEL", (dialog, which) -> {
+            dialog.dismiss();
+        });
+        
+        AlertDialog dialog = builder.create();
+        dialog.show();
+        
+        // Style the buttons
+        Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+        
+        if (positiveButton != null) {
+            positiveButton.setTextSize(18);
+            positiveButton.setTextColor(Color.WHITE);
+            positiveButton.setBackgroundColor(Color.parseColor("#4CAF50"));
+            positiveButton.setPadding(30, 20, 30, 20);
+        }
+        
+        if (negativeButton != null) {
+            negativeButton.setTextSize(18);
+            negativeButton.setTextColor(Color.WHITE);
+            negativeButton.setBackgroundColor(Color.parseColor("#F44336"));
+            negativeButton.setPadding(30, 20, 30, 20);
+        }
     }
     
     @Override
